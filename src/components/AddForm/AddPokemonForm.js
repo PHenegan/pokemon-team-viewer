@@ -1,6 +1,8 @@
 import { useState } from "react";
 import {Pokedex} from 'pokeapi-js-wrapper';
 
+import './AddPokemonForm.css'
+
 function AddPokemonForm(props) {
   const [enteredPokemon, setEnteredPokemon] = useState("Pikachu");
 
@@ -21,9 +23,13 @@ function AddPokemonForm(props) {
 
   return (
     <form>
-      <label>Pokemon Name or Pokedex Number</label>
+      <div>
+        <label>Pokemon Name or Pokedex Number</label>
+      </div>
       <input type="text" value={enteredPokemon} onChange={pokemonInputHandler} />
-      <button onClick={addHandler}>Add Pokemon</button>
+      <div>
+        <button onClick={addHandler}>Add Pokemon</button>
+      </div>
     </form>
   );
 }

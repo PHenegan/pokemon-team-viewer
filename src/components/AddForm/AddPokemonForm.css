@@ -1,0 +1,10 @@
+.PokemonFormList {
+    margin:1rem;
+    gap:1rem;
+    display:flexbox;
+    text-align:left;
+}
+
+.PokemonFormList {
+    text-align:right;
+}
