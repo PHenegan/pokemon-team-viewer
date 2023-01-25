@@ -1,8 +1,8 @@
 import Card from "../UI/Card";
+import "./PokemonEntry.css";
 
 function PokemonEntry(props) {
   function deleteHandler() {
-    console.log(props.id);
     props.onDelete(props.id);
   }
 
@@ -14,9 +14,8 @@ function PokemonEntry(props) {
         <div>{name}</div>
         <div>Pokemon #{props.pokemon.dexNum}</div>
         {/* <PokemonTypesList></PokemonTypesList> */}
-        <img src = {props.pokemon.sprite} width = {100} height = {100} alt = ''/>
+        <img className="PokemonEntry" src={props.pokemon.sprite} alt="" />
       </Card>
-      
     </li>
   );
 }

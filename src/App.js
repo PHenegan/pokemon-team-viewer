@@ -1,4 +1,3 @@
-import logo from "./logo.svg";
 import "./App.css";
 import AddPokemonForm from "./components/AddForm/AddPokemonForm";
 import Card from "./components/UI/Card";
@@ -33,11 +32,9 @@ function App() {
   }
 
   return (
-    <div>
-      <h1>Pokemon Team Creator</h1>
-      <Card>
-        <AddPokemonForm addPokemon = {addPokemonToTeam}></AddPokemonForm>
-      </Card>
+    <div style={{maxWidth: '95%', verticalAlign:'center'}}>
+      <h1 style={{alignText:'center'}}>Pokemon Team Creator</h1>
+      <AddPokemonForm addPokemon = {addPokemonToTeam}></AddPokemonForm>
       <Card>
         <PokemonList team = {pokemonTeam} onDelete = {deletePokemonFromTeam}></PokemonList>
       </Card>
