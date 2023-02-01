@@ -1,12 +1,13 @@
-.PokemonFormList {
+.pokemon-form-list {
     margin:1rem;
     gap:1rem;
     display: 'flex';
     text-align:left;
     max-width: 95%;
     padding: 1rem;
+    background: #adadad;
 }
 
-.PokemonFormList__submit {
+.pokemon-form-list__submit {
     align-content: right;
 }

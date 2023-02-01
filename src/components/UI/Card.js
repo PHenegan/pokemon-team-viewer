@@ -2,7 +2,7 @@ import './Card.css';
 
 function Card(props) {
   return (
-    <div className = {"card ".concat(props.children.className)}>{props.children}</div>
+    <div className = {"card ".concat(props.className)}>{props.children}</div>
   )
 }
 

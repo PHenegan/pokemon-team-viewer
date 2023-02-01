@@ -1,8 +1,27 @@
-.PokemonEntry img {
-    padding: 2rem;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    margin-top:2rem;
-    width: 100;
-    height: 100;
+/* 
+Note: the combinator (i.e.) combining the class with image
+will be applied to any images that are children of a specific selector.
+In this example, anything image whose parent has the  class "PokemonEntry"
+will have the resulting style applied to it
+
+question: How does this stack with nested children (grandchildren?)
+
+Also note: 
+The rules with more information (e.g. classname and element type) will have more priority 
+over rules with less information.
+
+*/
+.pokemon-entry {
+    margin: 1rem;
+}
+
+.pokemon-entry .card {
+    padding: 1rem;
+    margin: 1rem;
+    background: white;
+}
+
+.pokemon-entry img {
+    width: 72px;
+    height: 72px;
 }

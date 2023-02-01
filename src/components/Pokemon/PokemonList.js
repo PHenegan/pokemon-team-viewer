@@ -1,4 +1,5 @@
 import PokemonEntry from "./PokemonEntry";
+import './PokemonList.css'
 
 function PokemonList(props) {
   if (props.team.length === 0) {
@@ -6,7 +7,7 @@ function PokemonList(props) {
   }
 
   return (
-    <ul>
+    <ul className="pokemon-list">
       {props.team.map((pokemon) => (
         <PokemonEntry key={pokemon.id} id={pokemon.id} pokemon={pokemon} onDelete={props.onDelete} />
       ))}

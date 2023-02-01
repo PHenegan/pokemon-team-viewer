@@ -13,7 +13,7 @@ function App() {
     setPokemonTeam(prev => prev.filter(pokemon => pokemon.id !== id));
   }
 
-  function addPokemonToTeam(pokemon) {
+  function addPokemonToTeam(pokemon, species) {
     if (pokemonTeam.length >= 6) {
       return;
     }
@@ -23,7 +23,7 @@ function App() {
     const pokemonElt = {
       name: pokemon.name,
       types: pokemon.types,
-      dexNum: pokemon.id,
+      dexNum: species,
       sprite: pokemon.sprites.front_default,
       id: numPokeAdded,
     }
@@ -32,13 +32,13 @@ function App() {
   }
 
   return (
-    <div style={{maxWidth: '95%', verticalAlign:'center'}}>
-      <h1 style={{alignText:'center'}}>Pokemon Team Creator</h1>
+    <Card style={{maxWidth: '95%', verticalAlign:'center'}}>
+      <h1 id="title" style={{alignText:'center'}}>Pokemon Team Creator</h1>
       <AddPokemonForm addPokemon = {addPokemonToTeam}></AddPokemonForm>
       <Card>
         <PokemonList team = {pokemonTeam} onDelete = {deletePokemonFromTeam}></PokemonList>
       </Card>
-    </div>
+    </Card>
   );
 }
 

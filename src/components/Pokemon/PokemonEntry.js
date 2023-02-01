@@ -9,14 +9,14 @@ function PokemonEntry(props) {
   const name = props.pokemon.name.charAt(0).toUpperCase() + props.pokemon.name.substring(1);
   console.log(props.pokemon.sprite);
   return (
-    <li onClick={deleteHandler}>
+    <div className = "pokemon-entry" onClick={deleteHandler}>
       <Card>
         <div>{name}</div>
         <div>Pokemon #{props.pokemon.dexNum}</div>
         {/* <PokemonTypesList></PokemonTypesList> */}
-        <img className="PokemonEntry" src={props.pokemon.sprite} alt="" />
+        <img src={props.pokemon.sprite} alt="" />
       </Card>
-    </li>
+    </div>
   );
 }
 
