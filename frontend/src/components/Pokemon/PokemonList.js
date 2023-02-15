@@ -1,10 +1,9 @@
 import PokemonEntry from "./PokemonEntry";
 import "./PokemonList.css";
-import Card from "../UI/Card";
 
 function PokemonList(props) {
   if (props.team.length === 0) {
-    return <Card>No pokemon currently on team</Card>;
+    return <div>No pokemon currently on team</div>;
   }
 
   return (

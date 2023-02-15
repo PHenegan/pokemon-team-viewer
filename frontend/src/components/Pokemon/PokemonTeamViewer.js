@@ -8,8 +8,8 @@ import PokemonList from "./PokemonList";
 import { useState } from "react";
 
 export default function PokemonTeamViewer(props) {
-  const [pokemonTeam, setPokemonTeam] = useState([]);
-  const [numPokeAdded, setNumPokeAdded] = useState(0);
+  const [pokemonTeam, setPokemonTeam] = useState(props.userTeam);
+  const [numPokeAdded, setNumPokeAdded] = useState(props.startingID);
 
   function deletePokemonFromTeam(id) {
     console.log("got to App.js");
@@ -34,12 +34,18 @@ export default function PokemonTeamViewer(props) {
     setPokemonTeam((prevTeam) => [pokemonElt, ...prevTeam]);
   }
 
+  function submitHandler(event) {
+    event.preventDefault();
+    props.updateTeam(pokemonTeam, numPokeAdded);
+  }
+
   return (
     <div className="Pokemon-Team-Viewer">
       {pokemonTeam.length < 6 && <AddPokemonForm addPokemon={addPokemonToTeam}></AddPokemonForm>}
       <Card id="team-list">
         <PokemonList team={pokemonTeam} onDelete={deletePokemonFromTeam}></PokemonList>
       </Card>
+      <Card><button onClick = {submitHandler}>Submit Team</button></Card>
     </div>
   );
 }
