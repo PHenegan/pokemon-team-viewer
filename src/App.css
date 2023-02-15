@@ -9,11 +9,6 @@
   background: #2e2e2e;
 }
 
-.card > .card {
-  background: #adadad;
-  padding-top: 0rem;
-}
-
 .App-logo {
   height: 40vmin;
   pointer-events: none;
