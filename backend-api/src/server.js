@@ -1,8 +1,6 @@
 import Express from "express";
-import BodyParser from "body-parser";
 import * as users from "./users.js";
 
-const bp = BodyParser();
 const app = Express();
 
 const port = process.env.PORT || 8080;
@@ -10,7 +8,7 @@ const port = process.env.PORT || 8080;
 app.use(Express.json());
 
 // Gets the team for a specific username
-app.get("/teams/:id", (req, res) => {
+app.get("/team/:id", (req, res) => {
   console.log(`getting team from ${req.params.id}`);
   try {
     const team = users.getTeam(req.params.id);

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Card from "../UI/Card";
+import './LoginForm.css'
 
 export default function LoginForm(props) {
   const [enteredUsername, setEnteredUsername] = useState("");
@@ -18,7 +19,7 @@ export default function LoginForm(props) {
   }
 
   return (
-    <Card>
+    <Card className = "login-form">
       <form>
         <div>
           <label>Username:</label>

@@ -10,7 +10,7 @@ function App() {
 
   async function login(username) {
     try {
-      const user = await (await fetch(`/teams/${username}`)).json();
+      const user = await (await fetch(`/team/${username}`)).json();
       console.log(user);
       setUser(user);
     } catch {
