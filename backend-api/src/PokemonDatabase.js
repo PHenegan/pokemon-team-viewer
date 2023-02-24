@@ -26,7 +26,6 @@ export default class PokemonDatabase {
         `INSERT INTO Users (username, password) VALUES ('${username}', '${password}');`
       );
     } catch (e) {
-      console.log(e);
       throw new Error(`username ${username} already exists`);
     }
   }
@@ -46,14 +45,17 @@ export default class PokemonDatabase {
   }
 
   /**
-   * Removes the user with the given username and password
-   * @param {string} username the user to remove
-   * @param {string} password password used for authentication purposes before deleting
+   * Verifies that there is a user with the given username and password
+   *
+   * @param {string} username the username to authenticate
+   * @param {string} password the password being checked
+   * @returns true if the verification is successful, false otherwise
    */
-  async removeUser(username, password) {
-    await this.db.run(
-      `DELETE FROM Users WHERE username = '${username}' AND password = '${password}'`
+  async authenticateUser(username, password) {
+    const user = await this.db.get(
+      `SELECT * FROM Users WHERE username = '${username}' AND password = '${password}';`
     );
+    return user !== undefined;
   }
 
   /**
@@ -77,7 +79,40 @@ export default class PokemonDatabase {
    * @param {string} teamName
    */
   async addTeam(username, teamName) {
-    this.db.run(`INSERT INTO Teams (username, teamName) VALUES ('${username}', '${teamName}');`);
+    try {
+      await this.db.run(
+        `INSERT INTO Teams (userID, teamName) VALUES ('${username}', '${teamName}');`
+      );
+    } catch (e) {
+      throw new Error("Team with name already exists");
+    }
+  }
+
+  /**
+   * Finds the team from a given username and team name
+   * @param {string} username
+   * @returns the array of objects representing a team
+   */
+  async getTeam(username, teamName) {
+    const teamID = await findTeamIDByName(this.db, username, teamName);
+
+    const statement =
+      `SELECT name, nickname, pokemonID ` +
+      `FROM Pokemon JOIN Teams ON Pokemon.teamID = Teams.teamID ` +
+      `WHERE userID = '${username}' AND teamName = '${teamName}' ` +
+      `ORDER BY pokemonID`;
+    const team = await this.db.all(statement);
+    return team;
+  }
+  /**
+   * Removes the team and all pokemon in the user's given team from the database
+   * @param {string} username the name of the user removing a team
+   * @param {string} teamName the name of the team to remove
+   */
+  async removeTeam(username, teamName) {
+    const teamID = await findTeamIDByName(this.db, username, teamName);
+    this.db.run(`DELETE FROM Pokemon WHERE teamID = ${teamID}`);
+    this.db.run(`DELETE FROM Teams WHERE teamID = ${teamID}`);
   }
 
   /**
@@ -93,8 +128,8 @@ export default class PokemonDatabase {
     await this.db.run(
       `INSERT INTO Pokemon (teamID, name, nickname) VALUES (${teamID}, '${pokemon.name}', '${pokemon.nickname}');`
     );
-    const id = this.db.get("SELECT LAST_INSERT_ROWID() AS id;");
-    return id;
+    const row = await this.db.get("SELECT LAST_INSERT_ROWID() AS id;");
+    return row.id;
   }
 
   async updatePokemon(username, teamName, pokemon) {
@@ -112,32 +147,6 @@ export default class PokemonDatabase {
   async removePokemonByID(pokemonID) {
     this.db.run(`DELETE FROM Pokemon WHERE pokemonID = ${pokemonID};`);
   }
-
-  /**
-   * Finds the team from a given username and team name
-   * @param {string} username
-   * @returns the array of objects representing a team
-   */
-  async getTeam(username, teamName) {
-    const statement =
-      `SELECT name, nickname, pokemonID ` +
-      `FROM Pokemon JOIN Teams ON Pokemon.teamID = Teams.teamID ` +
-      `WHERE userID = '${username}' AND teamName = '${teamName}';`;
-    console.log(statement);
-    const team = this.db.all(statement);
-    return team;
-  }
-
-  /**
-   * Removes the team and all pokemon in the user's given team from the database
-   * @param {string} username the name of the user removing a team
-   * @param {string} teamName the name of the team to remove
-   */
-  async removeTeam(username, teamName) {
-    const teamID = findTeamIDByName(this.db, username, teamName);
-    this.db.run(`DELETE FROM Pokemon WHERE teamID = ${teamID}`);
-    this.db.run(`DELETE FROM Teams WHERE teamID = ${teamID}`);
-  }
 }
 
 /**
@@ -147,8 +156,12 @@ export default class PokemonDatabase {
  * @param {string} teamName - the password to compare against the database
  */
 async function findTeamIDByName(db, username, teamName) {
-  const teamID = db.get(
-    `SELECT teamID FROM Teams WHERE username = '${username}' AND teamName = '${teamName}';`
+  const row = await db.get(
+    `SELECT teamID FROM Teams WHERE userID = '${username}' AND teamName = '${teamName}';`
   );
-  return teamID;
+
+  if (!row) {
+    throw new Error(`Could not find team with name ${teamName} under ${username}`);
+  }
+  return row.teamID;
 }

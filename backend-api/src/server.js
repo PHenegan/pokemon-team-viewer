@@ -1,8 +1,7 @@
 import Express from "express";
-import PokemonDatabase from "./users.js";
+import PokemonDatabase from "./PokemonDatabase.js";
 
-
-const db = await PokemonDatabase.fromFile('./src/db/pokemon-teams.sqlite');
+const db = await PokemonDatabase.fromFile("./src/db/pokemon-teams.sqlite");
 
 const app = Express();
 
@@ -13,7 +12,7 @@ app.use(Express.json());
 // Attempts to create a new user with the given name and password
 app.post("/user", async (req, res) => {
   try {
-    db.addUser(req.body.username, req.body.password);
+    await db.addUser(req.body.username, req.body.password);
     res.send();
   } catch (e) {
     res.status(400).send(`Username already exists`);
@@ -23,24 +22,45 @@ app.post("/user", async (req, res) => {
 // Attempts to update a user's password
 app.put("/user", async (req, res) => {
   try {
-    db.changePassword(req.body.user, req.body.oldPassword, req.body.newPassword);
+    const authResult = await db.authenticateUser(req.body.username, req.body.password);
+    if (!authResult) {
+      res.status(403).send("Could not authenticate - username or password was incorrect");
+      return;
+    }
+
+    await db.changePassword(req.body.username, req.body.password, req.body.newPassword);
+    res.send();
   } catch (e) {
-    res.status(403).send();
+    res.status(500).send();
   }
 });
 
-// Attempts to remove a given user
-app.delete("/user", async (req, res) => {
+// Attempts to verify the credentials of a user
+app.put("/login", async (req, res) => {
+  console.log(`receive request ${req.body.username}, ${req.body.password}`);
   try {
-    db.removeUser(req.body.user, req.body.password);
+    const result = await db.authenticateUser(req.body.username, req.body.password);
+    console.log(result);
+    res.send(result);
   } catch (e) {
-    res.status(403).send();
+    res.status(400).send("User does not exist");
   }
-})
+});
 
 // Create a new team with the given name
-app.post("/team/:user/:teamName", (req, res) => {
-  db.addTeam(req.params.user, req.params.teamName);
+app.post("/team/:user/:teamName", async (req, res) => {
+  try {
+    const authResult = await db.authenticateUser(req.body.username, req.body.password);
+    if (!authResult) {
+      res.status(403).send("Could not authenticate credentials");
+      return;
+    }
+
+    await db.addTeam(req.params.user, req.params.teamName);
+    res.send();
+  } catch (e) {
+    res.status(400).send(`Could not add team with name ${req.params.teamName}`);
+  }
 });
 
 // Gets the team for a specific username and team name
@@ -52,23 +72,32 @@ app.get("/team/:user/:teamName", async (req, res) => {
     res.send(team);
   } catch (e) {
     console.log(e);
-    res.status(400).send(`Username ${req.params.user} or Team ${req.params.teamName} does not exist`);
+    res
+      .status(400)
+      .send(`Username ${req.params.user} or Team ${req.params.teamName} does not exist`);
   }
 });
 
 // remove a team from a given user
 app.delete("/team/:user/:teamName", async (req, res) => {
   try {
-    db.removeTeam(req.params.user, req.params.teamName);
+    const authResult = await db.authenticateUser(req.body.username, req.body.password);
+    if (!authResult) {
+      res.status(403).send("Could not authenticate credentials");
+      return;
+    }
+
+    await db.removeTeam(req.params.user, req.params.teamName);
+    res.send();
   } catch (e) {
-    console.log(e);
-    res.status(400).send(`Username ${req.params.user} does not have a team ${req.params.teamName}`)
+    res.status(400).send(`Username ${req.params.user} does not have a team ${req.params.teamName}`);
   }
 });
 
 // Get the list of teams for a specific username
 app.get("/teams/:user", async (req, res) => {
   try {
+    console.log(req.params.user);
     const teamList = await db.getUserTeams(req.params.user);
     console.log(teamList);
     res.send(teamList);
@@ -81,17 +110,37 @@ app.get("/teams/:user", async (req, res) => {
 // Adds a new Pokemon with the given pokemon name and nickname to the given team
 app.post("/pokemon/:user/:teamName", async (req, res) => {
   try {
-    const pID = await db.addPokemon(req.params.user, req.params.teamName, req.body)
-    res.send(pID);
+    const authResult = await db.authenticateUser(
+      req.body.userInfo.username,
+      req.body.userInfo.password
+    );
+    if (!authResult) {
+      res.status(403).send("Could not authenticate credentials");
+      return;
+    }
+    const pID = await db.addPokemon(req.params.user, req.params.teamName, req.body.pokemon);
+    res.send({ id: pID });
   } catch (e) {
-    res.status(400).send(`Username ${req.params.user} or Team ${req.params.teamName} does not exist`);
+    console.log(e);
+    res
+      .status(400)
+      .send(`Username ${req.params.user} or Team ${req.params.teamName} does not exist`);
   }
 });
 
 // Updates the pokemon with the given ID on the given team
 app.put("/pokemon/:user/:teamName:", async (req, res) => {
   try {
-    await db.updatePokemon(req.params.user, req.params.teamName, req.body);
+    const authResult = await db.authenticateUser(
+      req.body.userInfo.username,
+      req.body.userInfo.password
+    );
+    if (!authResult) {
+      res.status(403).send("Could not authenticate credentials");
+      return;
+    }
+    await db.updatePokemon(req.params.user, req.params.teamName, req.body.pokemon);
+    res.send();
   } catch (e) {
     res.status(400).send(`Invalid Inputs`);
   }
@@ -100,12 +149,17 @@ app.put("/pokemon/:user/:teamName:", async (req, res) => {
 // Removes a Pokemon with the given ID from the database
 app.delete("/pokemon/:user/:pokemonID", async (req, res) => {
   try {
+    const authResult = await db.authenticateUser(req.body.username, req.body.password);
+    if (!authResult) {
+      res.status(403).send("Could not authenticate credentials");
+      return;
+    }
     await db.removePokemonByID(req.params.pokemonID);
+    res.send();
   } catch (e) {
-    res.status(400).send(`Invalid Pokemon ID: ${req.params.pokemonID}`)
+    res.status(400).send(`Invalid Pokemon ID: ${req.params.pokemonID}`);
   }
 });
-
 
 app.listen(port, () => {
   console.log(`listening on port ${port}`);
