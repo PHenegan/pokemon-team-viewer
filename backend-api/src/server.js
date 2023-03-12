@@ -1,4 +1,5 @@
 import Express from "express";
+import session from "express-session";
 import PokemonDatabase from "./PokemonDatabase.js";
 
 const db = await PokemonDatabase.fromFile("./src/db/pokemon-teams.sqlite");
@@ -6,6 +7,15 @@ const db = await PokemonDatabase.fromFile("./src/db/pokemon-teams.sqlite");
 const app = Express();
 
 const port = process.env.PORT || 8080;
+
+// maximum cookie storage should be 5 minutes.
+const maxAuthAge = 1000 * 60 * 1;
+app.use(session({
+  secret: "adefinitelysecureandobviouslyperfectlyhiddensecretwhichyoucannotsee",
+  saveUninitialized: true,
+  cookie: {maxAge: maxAuthAge},
+  resave: false,
+}))
 
 app.use(Express.json());
 
@@ -37,9 +47,14 @@ app.put("/user", async (req, res) => {
 
 // Attempts to verify the credentials of a user
 app.put("/login", async (req, res) => {
-  console.log(`receive request ${req.body.username}, ${req.body.password}`);
+  const user = req.body.username;
+  const password = req.body.password;
   try {
     const result = await db.authenticateUser(req.body.username, req.body.password);
+    if (result) {
+      req.session.user = req.body.username;
+      req.session.authorized = true;
+    }
     console.log(result);
     res.send(result);
   } catch (e) {
@@ -50,9 +65,9 @@ app.put("/login", async (req, res) => {
 // Create a new team with the given name
 app.post("/team/:user/:teamName", async (req, res) => {
   try {
-    const authResult = await db.authenticateUser(req.body.username, req.body.password);
+    const authResult = req.session.authorized;
     if (!authResult) {
-      res.status(403).send("Could not authenticate credentials");
+      res.status(403).send("Not signed in");
       return;
     }
 
@@ -81,9 +96,9 @@ app.get("/team/:user/:teamName", async (req, res) => {
 // remove a team from a given user
 app.delete("/team/:user/:teamName", async (req, res) => {
   try {
-    const authResult = await db.authenticateUser(req.body.username, req.body.password);
+    const authResult = req.session.authorized;
     if (!authResult) {
-      res.status(403).send("Could not authenticate credentials");
+      res.status(403).send("Not signed in");
       return;
     }
 
@@ -110,12 +125,9 @@ app.get("/teams/:user", async (req, res) => {
 // Adds a new Pokemon with the given pokemon name and nickname to the given team
 app.post("/pokemon/:user/:teamName", async (req, res) => {
   try {
-    const authResult = await db.authenticateUser(
-      req.body.userInfo.username,
-      req.body.userInfo.password
-    );
+    const authResult = req.session.authorized;
     if (!authResult) {
-      res.status(403).send("Could not authenticate credentials");
+      res.status(403).send("Not signed in");
       return;
     }
     const pID = await db.addPokemon(req.params.user, req.params.teamName, req.body.pokemon);
@@ -131,10 +143,11 @@ app.post("/pokemon/:user/:teamName", async (req, res) => {
 // Updates the pokemon with the given ID on the given team
 app.put("/pokemon/:user/:teamName:", async (req, res) => {
   try {
-    const authResult = await db.authenticateUser(
-      req.body.userInfo.username,
-      req.body.userInfo.password
-    );
+    const authResult = req.session.authorized;
+    if (!authResult) {
+      res.status(403).send("Not signed in");
+      return;
+    }
     if (!authResult) {
       res.status(403).send("Could not authenticate credentials");
       return;
@@ -149,9 +162,9 @@ app.put("/pokemon/:user/:teamName:", async (req, res) => {
 // Removes a Pokemon with the given ID from the database
 app.delete("/pokemon/:user/:pokemonID", async (req, res) => {
   try {
-    const authResult = await db.authenticateUser(req.body.username, req.body.password);
+    const authResult = req.session.authorized;
     if (!authResult) {
-      res.status(403).send("Could not authenticate credentials");
+      res.status(403).send("Not signed in");
       return;
     }
     await db.removePokemonByID(req.params.pokemonID);
