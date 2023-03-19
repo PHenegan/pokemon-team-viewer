@@ -2,7 +2,7 @@ import Express from "express";
 import session from "express-session";
 import PokemonDatabase from "./PokemonDatabase.js";
 
-const db = await PokemonDatabase.fromFile("./src/db/pokemon-teams.sqlite");
+const db = await PokemonDatabase.fromFile("./env/db/pokemon-teams.sqlite");
 
 const app = Express();
 
@@ -10,12 +10,14 @@ const port = process.env.PORT || 8080;
 
 // maximum cookie storage should be 5 minutes.
 const maxAuthAge = 1000 * 60 * 1;
-app.use(session({
-  secret: "adefinitelysecureandobviouslyperfectlyhiddensecretwhichyoucannotsee",
-  saveUninitialized: true,
-  cookie: {maxAge: maxAuthAge},
-  resave: false,
-}))
+app.use(
+  session({
+    secret: "adefinitelysecureandobviouslyperfectlyhiddensecretwhichyoucannotsee",
+    saveUninitialized: true,
+    cookie: { maxAge: maxAuthAge },
+    resave: false,
+  })
+);
 
 app.use(Express.json());
 
@@ -59,6 +61,14 @@ app.put("/login", async (req, res) => {
     res.send(result);
   } catch (e) {
     res.status(400).send("User does not exist");
+  }
+});
+
+app.get("/auth", async (req, res) => {
+  if (req.session.authorized) {
+    res.send(user);
+  } else {
+    res.status(403).send();
   }
 });
 
