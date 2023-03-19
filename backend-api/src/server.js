@@ -1,8 +1,10 @@
 import Express from "express";
-import session from "express-session";
+import cors from "cors";
+import jwt from "jsonwebtoken";
 import PokemonDatabase from "./PokemonDatabase.js";
 
 const db = await PokemonDatabase.fromFile("./env/db/pokemon-teams.sqlite");
+const SECRET = "adefinitelysecureandobviouslyperfectlyhiddensecretwhichyoucannotsee";
 
 const app = Express();
 
@@ -12,7 +14,7 @@ const port = process.env.PORT || 8080;
 const maxAuthAge = 1000 * 60 * 1;
 app.use(
   session({
-    secret: "adefinitelysecureandobviouslyperfectlyhiddensecretwhichyoucannotsee",
+    secret: SECRET,
     saveUninitialized: true,
     cookie: { maxAge: maxAuthAge },
     resave: false,
@@ -24,8 +26,11 @@ app.use(Express.json());
 // Attempts to create a new user with the given name and password
 app.post("/user", async (req, res) => {
   try {
-    await db.addUser(req.body.username, req.body.password);
-    res.send();
+    const user = req.body.username;
+    await db.addUser(user, req.body.password);
+
+    const token = jwt.sign({ user: username }, SECRET, { expiresIn: maxAuthAge });
+    res.send({ user: user, token });
   } catch (e) {
     res.status(400).send(`Username already exists`);
   }
@@ -38,6 +43,7 @@ app.put("/user", async (req, res) => {
     if (!authResult) {
       res.status(403).send("Could not authenticate - username or password was incorrect");
       return;
+zz
     }
 
     await db.changePassword(req.body.username, req.body.password, req.body.newPassword);
@@ -68,7 +74,7 @@ app.get("/auth", async (req, res) => {
   if (req.session.authorized) {
     res.send(user);
   } else {
-    res.status(403).send();
+    res.status(400).send();
   }
 });
 
@@ -77,7 +83,7 @@ app.post("/team/:user/:teamName", async (req, res) => {
   try {
     const authResult = req.session.authorized;
     if (!authResult) {
-      res.status(403).send("Not signed in");
+      res.status(403).send();
       return;
     }
 
@@ -93,10 +99,8 @@ app.get("/team/:user/:teamName", async (req, res) => {
   console.log(`getting team '${req.params.teamName}' from '${req.params.user}'`);
   try {
     const team = await db.getTeam(req.params.user, req.params.teamName);
-    console.log(team);
     res.send(team);
   } catch (e) {
-    console.log(e);
     res
       .status(400)
       .send(`Username ${req.params.user} or Team ${req.params.teamName} does not exist`);

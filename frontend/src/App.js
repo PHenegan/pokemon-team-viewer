@@ -10,7 +10,7 @@ import { Pokedex } from "pokeapi-js-wrapper";
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [hasTeam, setHasTeam] = useState(false);
-  const [userInfo, setUserInfo] = useState({});
+  const [username, setUsername] = useState({});
   const [userTeams, setUserTeams] = useState([]);
   const [team, setTeam] = useState([]);
   const [teamName, setTeamName] = useState("");
@@ -27,21 +27,30 @@ export default function App() {
         body: JSON.stringify(user),
         headers: { "Content-Type": "application/json" },
       });
-      const text = await response.text();
-      console.log(text);
-      if (text === "true") {
+      if (response.status === 200) {
         console.log("login success");
-        setUserInfo(user);
+        setUsername(username);
         setIsLoggedIn(true);
 
         const teamResponse = await fetch(`/teams/${user.username}`);
         const teamList = await teamResponse.json();
-        setUserTeams(teamList.map(eachTeam => eachTeam.teamName));
+        setUserTeams(teamList.map((eachTeam) => eachTeam.teamName));
+      } else {
+        return;
       }
     } catch (e) {
       console.log(e);
       return;
     }
+  }
+
+  function logout() {
+    setHasTeam(false);
+    setTeamName("");
+    setTeam([]);
+    setUserTeams([]);
+    setUsername("");
+    setIsLoggedIn(false);
   }
 
   async function createUser(username, password) {
@@ -72,22 +81,21 @@ export default function App() {
     if (!teamName || teamName === "") {
       return;
     }
-    try {
-      await fetch(`/team/${userInfo.username}/${teamName}`, {
-        method: "POST",
-        body: JSON.stringify(userInfo),
-        headers: { "Content-Type": "application/json" },
-      });
-      setUserTeams(prev => [...prev, teamName]);
+    const result = await fetch(`/team/${username}/${teamName}`, {
+      method: "POST",
+    });
+
+    if (result.status === 403) {
+      logout();
+    } else if (result.status === 200) {
+      setUserTeams((prev) => [...prev, teamName]);
       await loadTeam(teamName);
-    } catch (e) {
-      console.log("Could not create team - Error: " + e);
     }
   }
 
   async function loadTeam(teamName) {
     try {
-      const response = await fetch(`/team/${userInfo.username}/${teamName}`);
+      const response = await fetch(`/team/${username}/${teamName}`);
       const teamData = await response.json();
       const teamObjects = await Promise.all(
         teamData.map((eachPokemon) => pokemonFromDatabase(eachPokemon))
@@ -106,13 +114,11 @@ export default function App() {
     console.log(`attempting to delete team ${teamName}`);
 
     try {
-      await fetch(`team/${userInfo.username}/${teamName}`, {
+      await fetch(`team/${username}/${teamName}`, {
         method: "DELETE",
-        body: JSON.stringify(userInfo),
-        headers: { "Content-Type": "application/json" },
       });
 
-      setUserTeams(prev => prev.filter(eachTeam => eachTeam.teamName !== teamName));
+      setUserTeams((prev) => prev.filter((eachTeam) => eachTeam.teamName !== teamName));
       setHasTeam(false);
       setTeam([]);
       setTeamName("");
@@ -123,15 +129,12 @@ export default function App() {
 
   async function addPokemon(pokemonName) {
     const request = {
-      userInfo: userInfo,
-      pokemon: {
-        name: pokemonName,
-        nickname: pokemonName,
-      },
+      name: pokemonName,
+      nickname: pokemonName,
     };
     try {
       const apiData = await pokeAPIData(pokemonName);
-      const response = await fetch(`/pokemon/${userInfo.username}/${teamName}`, {
+      const response = await fetch(`/pokemon/${username}/${teamName}`, {
         method: "POST",
         body: JSON.stringify(request),
         headers: { "Content-Type": "application/json" },
@@ -156,9 +159,8 @@ export default function App() {
 
   async function deletePokemon(pokemonID) {
     console.log(`attempting to delete pokemon with id ${pokemonID}`);
-    await fetch(`/pokemon/${userInfo.username}/${pokemonID}`, {
+    const response = await fetch(`/pokemon/${username}/${pokemonID}`, {
       method: "DELETE",
-      body: JSON.stringify(userInfo),
       headers: { "Content-Type": "application/json" },
     });
 
@@ -182,10 +184,10 @@ export default function App() {
 
     content = (
       <div>
-        <Card className = "login-form">
-          <h>Team List:</h>
+        <Card className="login-form">
+          <h3>Team List:</h3>
           {userTeams.map((teamName) => (
-            <div key = {teamName}>"{teamName}"</div>
+            <div key={teamName}>"{teamName}"</div>
           ))}
         </Card>
         <TeamForm makeTeam={addTeam} loadTeam={loadTeam} />
