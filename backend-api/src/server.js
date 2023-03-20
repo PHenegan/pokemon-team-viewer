@@ -1,6 +1,5 @@
 import Express from "express";
-import cors from "cors";
-import jwt from "jsonwebtoken";
+import session from "express-session"
 import PokemonDatabase from "./PokemonDatabase.js";
 
 const db = await PokemonDatabase.fromFile("./env/db/pokemon-teams.sqlite");
@@ -11,7 +10,7 @@ const app = Express();
 const port = process.env.PORT || 8080;
 
 // maximum cookie storage should be 5 minutes.
-const maxAuthAge = 1000 * 60 * 1;
+const maxAuthAge = 1000 * 60 * 5;
 app.use(
   session({
     secret: SECRET,
@@ -63,7 +62,6 @@ app.put("/login", async (req, res) => {
       req.session.user = req.body.username;
       req.session.authorized = true;
     }
-    console.log(result);
     res.send(result);
   } catch (e) {
     res.status(400).send("User does not exist");
@@ -72,7 +70,7 @@ app.put("/login", async (req, res) => {
 
 app.get("/auth", async (req, res) => {
   if (req.session.authorized) {
-    res.send(user);
+    res.send(req.session.user);
   } else {
     res.status(400).send();
   }
@@ -126,12 +124,9 @@ app.delete("/team/:user/:teamName", async (req, res) => {
 // Get the list of teams for a specific username
 app.get("/teams/:user", async (req, res) => {
   try {
-    console.log(req.params.user);
     const teamList = await db.getUserTeams(req.params.user);
-    console.log(teamList);
     res.send(teamList);
   } catch (e) {
-    console.log(e);
     res.status(400).send(`Username ${req.params.user} does not exist`);
   }
 });
@@ -144,7 +139,7 @@ app.post("/pokemon/:user/:teamName", async (req, res) => {
       res.status(403).send("Not signed in");
       return;
     }
-    const pID = await db.addPokemon(req.params.user, req.params.teamName, req.body.pokemon);
+    const pID = await db.addPokemon(req.params.user, req.params.teamName, req.body);
     res.send({ id: pID });
   } catch (e) {
     console.log(e);

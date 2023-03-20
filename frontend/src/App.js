@@ -2,18 +2,46 @@ import "./App.css";
 import Card from "./components/UI/Card";
 import PokemonTeamViewer from "./components/Pokemon/PokemonTeamViewer";
 import LoginForm from "./components/Forms/LoginForm";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TeamForm from "./components/Forms/TeamForm";
 
 import { Pokedex } from "pokeapi-js-wrapper";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [hasTeam, setHasTeam] = useState(false);
   const [username, setUsername] = useState({});
   const [userTeams, setUserTeams] = useState([]);
+
+  const [hasTeam, setHasTeam] = useState(false);
   const [team, setTeam] = useState([]);
   const [teamName, setTeamName] = useState("");
+
+  useEffect(() => {
+    async function authSession() {
+      const response = await fetch("/auth");
+      if (response.status === 200) {
+        const user = await response.text();
+        setUsername(user);
+        setIsLoggedIn(true);
+
+        const teamResponse = await fetch(`/teams/${user}`);
+        const teamList = await teamResponse.json();
+
+        setUserTeams(teamList.map((eachTeam) => eachTeam.teamName));
+      } else {
+        setHasTeam(false);
+        setTeamName("");
+        setTeam([]);
+        setUserTeams([]);
+        setUsername("");
+        setIsLoggedIn(false);
+      }
+    }
+
+    if (!isLoggedIn) {
+      authSession();
+    }
+  }, [isLoggedIn]);
 
   async function login(username, password) {
     const user = {
@@ -42,15 +70,6 @@ export default function App() {
       console.log(e);
       return;
     }
-  }
-
-  function logout() {
-    setHasTeam(false);
-    setTeamName("");
-    setTeam([]);
-    setUserTeams([]);
-    setUsername("");
-    setIsLoggedIn(false);
   }
 
   async function createUser(username, password) {
@@ -86,7 +105,7 @@ export default function App() {
     });
 
     if (result.status === 403) {
-      logout();
+      setIsLoggedIn(false);
     } else if (result.status === 200) {
       setUserTeams((prev) => [...prev, teamName]);
       await loadTeam(teamName);
@@ -113,18 +132,18 @@ export default function App() {
   async function deleteTeam() {
     console.log(`attempting to delete team ${teamName}`);
 
-    try {
-      await fetch(`team/${username}/${teamName}`, {
-        method: "DELETE",
-      });
+    const result = await fetch(`team/${username}/${teamName}`, {
+      method: "DELETE",
+    });
 
-      setUserTeams((prev) => prev.filter((eachTeam) => eachTeam.teamName !== teamName));
-      setHasTeam(false);
-      setTeam([]);
-      setTeamName("");
-    } catch (e) {
-      return;
+    if (result.status !== 200) {
+      setIsLoggedIn(false);
     }
+
+    setUserTeams((prev) => prev.filter((eachTeam) => eachTeam.teamName !== teamName));
+    setHasTeam(false);
+    setTeam([]);
+    setTeamName("");
   }
 
   async function addPokemon(pokemonName) {
@@ -139,6 +158,12 @@ export default function App() {
         body: JSON.stringify(request),
         headers: { "Content-Type": "application/json" },
       });
+
+      if (response.status === 403) {
+        setIsLoggedIn(false);
+        return;
+      }
+
       const id = (await response.json()).id;
 
       const pokemonObject = {
@@ -163,6 +188,10 @@ export default function App() {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
     });
+
+    if (response.status !== 200) {
+      setIsLoggedIn(false);
+    }
 
     setTeam((prev) => prev.filter((eachPokemon) => eachPokemon.id !== pokemonID));
   }
